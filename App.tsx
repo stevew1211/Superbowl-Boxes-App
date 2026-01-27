@@ -34,6 +34,7 @@ export default function App() {
     addParticipant,
     submitClaim,
     approveClaim,
+    approveAllClaims,
     rejectClaim,
     updateBox,
     updateScore,
@@ -299,6 +300,7 @@ export default function App() {
               <PendingClaimsPanel
                 game={game}
                 onApprove={approveClaim}
+                onApproveAll={approveAllClaims}
                 onReject={rejectClaim}
               />
             </section>

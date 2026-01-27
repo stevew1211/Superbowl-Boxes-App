@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { FirestoreGame, GameMode, PayoutSummary, UserSession } from '../types';
-import { TRADITIONAL_DISTRIBUTION } from '../constants';
+import { TRADITIONAL_DISTRIBUTION, FINAL_SCORE_PROBABILITIES } from '../constants';
 
 interface DashboardProps {
   game: FirestoreGame;
@@ -93,6 +93,44 @@ const Dashboard: React.FC<DashboardProps> = ({ game, session, isCreator }) => {
 
   const boxesClaimed = game.grid.flat().filter((s) => s.participantId !== null).length;
 
+  // Calculate win probabilities for each player (Traditional mode only, after numbers are assigned)
+  const winProbabilities = useMemo(() => {
+    if (game.mode !== GameMode.TRADITIONAL) return [];
+    if (game.homeNumbers.length === 0 || game.awayNumbers.length === 0) return [];
+
+    const probabilities: Record<string, number> = {};
+
+    // Initialize for all participants
+    game.participants.forEach((p) => {
+      probabilities[p.id] = 0;
+    });
+
+    // Sum probabilities for each player's boxes
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        const square = game.grid[row]?.[col];
+        if (square?.participantId) {
+          // Get the actual digit values for this position
+          const homeDigit = game.homeNumbers[row];
+          const awayDigit = game.awayNumbers[col];
+          // Look up probability (row = home digit, col = away digit)
+          const prob = FINAL_SCORE_PROBABILITIES[homeDigit]?.[awayDigit] || 0;
+          probabilities[square.participantId] += prob;
+        }
+      }
+    }
+
+    return game.participants
+      .map((p) => ({
+        participantId: p.id,
+        participantName: p.name,
+        probability: probabilities[p.id] || 0,
+        boxCount: game.grid.flat().filter((s) => s.participantId === p.id).length,
+      }))
+      .filter((p) => p.boxCount > 0)
+      .sort((a, b) => b.probability - a.probability);
+  }, [game]);
+
   return (
     <div className="space-y-8">
       {/* Your Status (for non-creators) */}
@@ -129,6 +167,51 @@ const Dashboard: React.FC<DashboardProps> = ({ game, session, isCreator }) => {
               <span className="text-2xl font-black text-amber-400">{game.pendingClaims.length}</span>
               <span className="text-xs text-slate-400 block">Pending</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Win Probability (Traditional mode, host only, after numbers assigned) */}
+      {isCreator && game.mode === GameMode.TRADITIONAL && winProbabilities.length > 0 && (
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4">
+          <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">
+            Final Score Win Probability
+          </h3>
+          <p className="text-[10px] text-slate-500 mb-3">
+            Based on historical Super Bowl final score patterns
+          </p>
+          <div className="space-y-2">
+            {winProbabilities.map((p) => {
+              const percentage = (p.probability * 100).toFixed(1);
+              return (
+                <div
+                  key={p.participantId}
+                  className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-6 rounded-full"
+                      style={{
+                        backgroundColor: game.participants.find((u) => u.id === p.participantId)?.color,
+                      }}
+                    />
+                    <span className="text-sm font-medium">{p.participantName}</span>
+                    <span className="text-[10px] text-slate-500">({p.boxCount} boxes)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 rounded-full"
+                        style={{ width: `${Math.min(p.probability * 100, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-purple-400 w-14 text-right">
+                      {percentage}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

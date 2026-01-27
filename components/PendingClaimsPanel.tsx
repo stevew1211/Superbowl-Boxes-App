@@ -4,12 +4,14 @@ import { BoxClaim, FirestoreGame } from '../types';
 interface PendingClaimsPanelProps {
   game: FirestoreGame;
   onApprove: (claim: BoxClaim) => void;
+  onApproveAll: () => void;
   onReject: (claim: BoxClaim) => void;
 }
 
 const PendingClaimsPanel: React.FC<PendingClaimsPanelProps> = ({
   game,
   onApprove,
+  onApproveAll,
   onReject,
 }) => {
   const pendingClaims = game.pendingClaims;
@@ -20,11 +22,19 @@ const PendingClaimsPanel: React.FC<PendingClaimsPanelProps> = ({
 
   return (
     <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-        <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wide">
-          Pending Claims ({pendingClaims.length})
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+          <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wide">
+            Pending Claims ({pendingClaims.length})
+          </h3>
+        </div>
+        <button
+          onClick={onApproveAll}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+        >
+          Approve All
+        </button>
       </div>
 
       <div className="space-y-3">

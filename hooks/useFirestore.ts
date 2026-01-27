@@ -227,6 +227,28 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
     [gameId, game, session]
   );
 
+  // Approve all pending claims (for creator)
+  const approveAllClaims = useCallback(
+    async () => {
+      if (!gameId || !game || !session?.isCreator) return;
+      if (game.pendingClaims.length === 0) return;
+
+      // Update grid with all pending claims
+      const newGrid = game.grid.map((row) => row.map((sq) => ({ ...sq })));
+      game.pendingClaims.forEach((claim) => {
+        newGrid[claim.row][claim.col] = { participantId: claim.participantId };
+      });
+
+      const docRef = doc(db, GAMES_COLLECTION, gameId);
+      await updateDoc(docRef, {
+        grid: flattenGrid(newGrid),
+        pendingClaims: [],
+        updatedAt: Date.now(),
+      });
+    },
+    [gameId, game, session]
+  );
+
   // Direct box update (for creator to assign boxes directly)
   const updateBox = useCallback(
     async (row: number, col: number, participantId: string | null) => {
@@ -249,10 +271,14 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
     async (scoreUpdate: ScoreUpdate) => {
       if (!gameId || !game || !session?.isCreator) return;
 
-      // Remove existing update for same minute/quarter if any
-      const filteredHistory = game.scoreHistory.filter(
-        (s) => s.minute !== scoreUpdate.minute
-      );
+      // Mode-aware deduplication: by quarter in Traditional mode, by minute in Minute-by-Minute
+      const filteredHistory = game.scoreHistory.filter((s) => {
+        if (game.mode === GameMode.TRADITIONAL) {
+          return s.quarter !== scoreUpdate.quarter;
+        } else {
+          return s.minute !== scoreUpdate.minute;
+        }
+      });
       const newHistory = [...filteredHistory, scoreUpdate].sort(
         (a, b) => a.minute - b.minute
       );
@@ -306,6 +332,7 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
     addParticipant,
     submitClaim,
     approveClaim,
+    approveAllClaims,
     rejectClaim,
     updateBox,
     updateScore,

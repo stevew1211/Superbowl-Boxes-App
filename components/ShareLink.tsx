@@ -7,7 +7,7 @@ interface ShareLinkProps {
 const ShareLink: React.FC<ShareLinkProps> = ({ gameId }) => {
   const [copied, setCopied] = useState(false);
   const [useNetworkUrl, setUseNetworkUrl] = useState(true); // Default to network URL for easier sharing
-  const [networkIp, setNetworkIp] = useState<string>('192.168.68.106'); // Default to common local IP
+  const [networkIp, setNetworkIp] = useState<string>('192.168.68.110'); // Default to local network IP
   const [showQr, setShowQr] = useState(false);
 
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
