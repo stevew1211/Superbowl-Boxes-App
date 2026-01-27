@@ -4,6 +4,20 @@ export enum GameMode {
   MINUTE_BY_MINUTE = 'MINUTE_BY_MINUTE'
 }
 
+export enum ClaimStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum GameStatus {
+  SETUP = 'SETUP',
+  OPEN = 'OPEN',
+  LOCKED = 'LOCKED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED'
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -38,4 +52,41 @@ export interface PayoutSummary {
   participantName: string;
   totalOwed: number;
   winCount: number;
+}
+
+export interface BoxClaim {
+  id: string;
+  gameId: string;
+  participantId: string;
+  participantName: string;
+  row: number;
+  col: number;
+  status: ClaimStatus;
+  createdAt: number;
+}
+
+export interface UserSession {
+  id: string;
+  name: string;
+  gameId: string;
+  isCreator: boolean;
+}
+
+export interface FirestoreGame {
+  id: string;
+  creatorSessionId: string;
+  creatorName: string;
+  mode: GameMode;
+  homeTeam: string;
+  awayTeam: string;
+  pricePerBox: number;
+  homeNumbers: number[];
+  awayNumbers: number[];
+  grid: Square[][];
+  participants: Participant[];
+  scoreHistory: ScoreUpdate[];
+  pendingClaims: BoxClaim[];
+  status: GameStatus;
+  createdAt: number;
+  updatedAt: number;
 }
