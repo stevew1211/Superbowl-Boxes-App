@@ -54,6 +54,13 @@ export interface PayoutSummary {
   winCount: number;
 }
 
+export interface PayoutDistribution {
+  Q1: number;
+  HALFTIME: number;
+  Q3: number;
+  FINAL: number;
+}
+
 export interface BoxClaim {
   id: string;
   gameId: string;
@@ -80,6 +87,8 @@ export interface FirestoreGame {
   homeTeam: string;
   awayTeam: string;
   pricePerBox: number;
+  payoutDistribution?: PayoutDistribution; // Custom payout % for Traditional mode
+  instructions?: string; // Custom instructions from host (e.g., payment info)
   homeNumbers: number[];
   awayNumbers: number[];
   grid: Square[][];

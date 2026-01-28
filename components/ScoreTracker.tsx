@@ -9,7 +9,7 @@ interface ScoreTrackerProps {
 }
 
 const ScoreTracker: React.FC<ScoreTrackerProps> = ({ game, onAddScore, isCreator }) => {
-  const [minute, setMinute] = useState(1);
+  const [minute, setMinute] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
   const [homeScore, setHomeScore] = useState(0);
   const [quarter, setQuarter] = useState<1 | 2 | 3 | 4>(1);
@@ -112,17 +112,23 @@ const ScoreTracker: React.FC<ScoreTrackerProps> = ({ game, onAddScore, isCreator
           <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
             <div className="flex-1 min-w-[120px]">
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                {game.mode === GameMode.MINUTE_BY_MINUTE ? 'Game Minute (1-60)' : 'Current Quarter'}
+                {game.mode === GameMode.MINUTE_BY_MINUTE ? 'Game Minute' : 'Current Quarter'}
               </label>
               {game.mode === GameMode.MINUTE_BY_MINUTE ? (
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
+                <select
                   value={minute}
                   onChange={(e) => setMinute(Number(e.target.value))}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none"
-                />
+                >
+                  {/* Minutes 0-59 each pay 1% */}
+                  {Array.from({ length: 60 }, (_, i) => (
+                    <option key={i} value={i}>
+                      Minute {i} (1%)
+                    </option>
+                  ))}
+                  {/* Final score pays 40% */}
+                  <option value={60}>Final Score (40%)</option>
+                </select>
               ) : (
                 <select
                   value={quarter}
@@ -189,7 +195,9 @@ const ScoreTracker: React.FC<ScoreTrackerProps> = ({ game, onAddScore, isCreator
               >
                 <div>
                   <span className="text-xs font-bold text-indigo-400 block uppercase">
-                    {game.mode === GameMode.MINUTE_BY_MINUTE ? `Minute ${s.minute}` : `End of Q${s.quarter}`}
+                    {game.mode === GameMode.MINUTE_BY_MINUTE
+                      ? (s.minute === 60 ? 'Final Score (40%)' : `Minute ${s.minute} (1%)`)
+                      : `End of Q${s.quarter}`}
                   </span>
                   <span className="text-lg font-black">
                     {s.awayScore} - {s.homeScore}

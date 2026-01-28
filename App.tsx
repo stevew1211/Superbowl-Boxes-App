@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { GameMode, ScoreUpdate, PayoutSummary, Participant, BoxClaim } from './types';
+import { GameMode, ScoreUpdate, PayoutSummary, Participant, BoxClaim, PayoutDistribution } from './types';
 import { generateUUID } from './utils';
 import { GRID_SIZE, COLORS } from './constants';
 import { useSession } from './hooks/useSession';
@@ -67,6 +67,8 @@ export default function App() {
     awayTeam: string;
     pricePerBox: number;
     mode: GameMode;
+    payoutDistribution?: PayoutDistribution;
+    instructions?: string;
   }) => {
     // Create session for the creator (with placeholder gameId, will update after)
     const creatorSession = {
@@ -83,6 +85,8 @@ export default function App() {
       awayTeam: config.awayTeam,
       pricePerBox: config.pricePerBox,
       mode: config.mode,
+      payoutDistribution: config.payoutDistribution,
+      instructions: config.instructions,
     });
 
     // Update session with real game ID and save to localStorage
@@ -237,12 +241,13 @@ export default function App() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
-                />
+                {/* Football shape */}
+                <ellipse cx="12" cy="12" rx="9" ry="5" strokeWidth={2} transform="rotate(45 12 12)" />
+                {/* Laces */}
+                <line x1="12" y1="8" x2="12" y2="16" strokeWidth={2} strokeLinecap="round" />
+                <line x1="10" y1="10" x2="14" y2="10" strokeWidth={1.5} strokeLinecap="round" />
+                <line x1="10" y1="12" x2="14" y2="12" strokeWidth={1.5} strokeLinecap="round" />
+                <line x1="10" y1="14" x2="14" y2="14" strokeWidth={1.5} strokeLinecap="round" />
               </svg>
             </div>
             <div>
@@ -260,7 +265,7 @@ export default function App() {
             <div className="text-center md:text-right">
               <span className="text-xs text-slate-400 block uppercase font-bold">Total Pot</span>
               <span className="text-2xl font-black text-emerald-400">
-                ${(game.pricePerBox * 100).toLocaleString()}
+                ${(game.pricePerBox * game.grid.flat().filter(s => s.participantId !== null).length).toLocaleString()}
               </span>
             </div>
             <div className="text-center md:text-right">
@@ -312,7 +317,7 @@ export default function App() {
               The Grid
               {!isCreator && (
                 <span className="text-xs text-slate-500 font-normal ml-2">
-                  (Click boxes to claim)
+                  (Click to claim, click again to undo)
                 </span>
               )}
             </h2>

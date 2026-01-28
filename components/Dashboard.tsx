@@ -27,6 +27,9 @@ const Dashboard: React.FC<DashboardProps> = ({ game, session, isCreator }) => {
     };
 
     if (game.mode === GameMode.TRADITIONAL) {
+      // Use custom distribution if set, otherwise fall back to default
+      const dist = game.payoutDistribution || TRADITIONAL_DISTRIBUTION;
+
       const q1 = game.scoreHistory.find((s) => s.quarter === 1);
       const q2 = game.scoreHistory.find((s) => s.quarter === 2);
       const q3 = game.scoreHistory.find((s) => s.quarter === 3);
@@ -35,37 +38,46 @@ const Dashboard: React.FC<DashboardProps> = ({ game, session, isCreator }) => {
       if (q1) {
         const wid = getWinnerId(q1.homeScore, q1.awayScore);
         if (wid && payouts[wid]) {
-          payouts[wid].total += potSize * TRADITIONAL_DISTRIBUTION.Q1;
+          payouts[wid].total += potSize * dist.Q1;
           payouts[wid].wins += 1;
         }
       }
       if (q2) {
         const wid = getWinnerId(q2.homeScore, q2.awayScore);
         if (wid && payouts[wid]) {
-          payouts[wid].total += potSize * TRADITIONAL_DISTRIBUTION.HALFTIME;
+          payouts[wid].total += potSize * dist.HALFTIME;
           payouts[wid].wins += 1;
         }
       }
       if (q3) {
         const wid = getWinnerId(q3.homeScore, q3.awayScore);
         if (wid && payouts[wid]) {
-          payouts[wid].total += potSize * TRADITIONAL_DISTRIBUTION.Q3;
+          payouts[wid].total += potSize * dist.Q3;
           payouts[wid].wins += 1;
         }
       }
       if (q4) {
         const wid = getWinnerId(q4.homeScore, q4.awayScore);
         if (wid && payouts[wid]) {
-          payouts[wid].total += potSize * TRADITIONAL_DISTRIBUTION.FINAL;
+          payouts[wid].total += potSize * dist.FINAL;
           payouts[wid].wins += 1;
         }
       }
     } else {
-      const perMin = potSize / 60;
+      // Minute-by-minute: each minute (0-59) pays 1%, final score pays 40%
+      const perMin = potSize * 0.01; // 1% per minute
+      const finalPayout = potSize * 0.40; // 40% for final score
+
       game.scoreHistory.forEach((s) => {
         const wid = getWinnerId(s.homeScore, s.awayScore);
         if (wid && payouts[wid]) {
-          payouts[wid].total += perMin;
+          if (s.minute === 60) {
+            // Final score entry
+            payouts[wid].total += finalPayout;
+          } else {
+            // Regular minute (0-59)
+            payouts[wid].total += perMin;
+          }
           payouts[wid].wins += 1;
         }
       });
@@ -297,13 +309,23 @@ const Dashboard: React.FC<DashboardProps> = ({ game, session, isCreator }) => {
         </div>
       </div>
 
+      {/* Host Instructions */}
+      {game.instructions && (
+        <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
+          <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Host Instructions</div>
+          <p className="text-xs text-amber-100/70 leading-relaxed whitespace-pre-wrap">
+            {game.instructions}
+          </p>
+        </div>
+      )}
+
       {/* How it works */}
       <div className="bg-indigo-500/10 p-4 rounded-2xl border border-indigo-500/20">
         <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">How it works</div>
         <p className="text-xs text-indigo-100/70 leading-relaxed">
           {game.mode === GameMode.TRADITIONAL
-            ? 'Winners are calculated based on the last digit of the score at the end of each quarter. Standard 20/30/20/30 distribution.'
-            : 'Pot is split into 60 equal parts. Each game minute is a new chance to win. Log the score at specific minute marks to assign payouts.'}
+            ? `Winners are calculated based on the last digit of the score at the end of each quarter. Payout: Q1 ${Math.round((game.payoutDistribution?.Q1 || TRADITIONAL_DISTRIBUTION.Q1) * 100)}% / Half ${Math.round((game.payoutDistribution?.HALFTIME || TRADITIONAL_DISTRIBUTION.HALFTIME) * 100)}% / Q3 ${Math.round((game.payoutDistribution?.Q3 || TRADITIONAL_DISTRIBUTION.Q3) * 100)}% / Final ${Math.round((game.payoutDistribution?.FINAL || TRADITIONAL_DISTRIBUTION.FINAL) * 100)}%`
+            : 'Each minute (0-59) pays 1% of the pot. Final score pays the remaining 40%. Minute 0 starts with 0-0 score.'}
         </p>
       </div>
     </div>

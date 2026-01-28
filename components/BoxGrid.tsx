@@ -62,11 +62,12 @@ const BoxGrid: React.FC<BoxGridProps> = ({ game, session, isCreator, onBoxClick 
               const isPending = !!pendingClaim;
               const isClaimed = !!participant;
               const isMyPending = isMyPendingClaim(rowIndex, colIndex);
+              const boxNumber = rowIndex * 10 + colIndex + 1;
 
               // Determine if box is clickable
               const canClick = isCreator
                 ? true // Creator can always click to cycle participants
-                : !isClaimed && !isPending; // Participants can only claim empty boxes
+                : !isClaimed && (!isPending || isMyPending); // Participants can claim empty boxes or cancel their own pending claims
 
               // Determine visual state
               let boxStyle = {};
@@ -84,7 +85,7 @@ const BoxGrid: React.FC<BoxGridProps> = ({ game, session, isCreator, onBoxClick 
                   backgroundColor: pendingParticipant.color + '20',
                   borderColor: pendingParticipant.color + '80',
                 };
-                boxClasses += ' animate-pulse';
+                boxClasses += isMyPending ? ' animate-pulse cursor-pointer' : ' animate-pulse';
               } else {
                 // Empty box
                 boxClasses += ' border-slate-800';
@@ -119,9 +120,9 @@ const BoxGrid: React.FC<BoxGridProps> = ({ game, session, isCreator, onBoxClick 
                       </span>
                       <span className="text-[6px] uppercase text-amber-400 font-bold">Pending</span>
                     </div>
-                  ) : canClick ? (
-                    <span className="opacity-0 hover:opacity-100 text-slate-600">+</span>
-                  ) : null}
+                  ) : (
+                    <span className="text-slate-600 font-bold text-sm">{boxNumber}</span>
+                  )}
                 </button>
               );
             })}

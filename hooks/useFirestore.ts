@@ -18,6 +18,7 @@ import {
   ClaimStatus,
   ScoreUpdate,
   UserSession,
+  PayoutDistribution,
 } from '../types';
 import { GRID_SIZE, COLORS } from '../constants';
 import { generateUUID } from '../utils';
@@ -100,6 +101,8 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
       awayTeam: string;
       pricePerBox: number;
       mode: GameMode;
+      payoutDistribution?: PayoutDistribution;
+      instructions?: string;
     }): Promise<string> => {
       console.log('createGame: Starting...');
       const newGameId = generateUUID().slice(0, 8);
@@ -111,7 +114,7 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
         color: COLORS[0],
       };
 
-      const newGame = {
+      const newGame: Record<string, unknown> = {
         creatorSessionId: config.creatorSession.id,
         creatorName: config.creatorSession.name,
         mode: config.mode,
@@ -128,6 +131,16 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
         createdAt: now,
         updatedAt: now,
       };
+
+      // Add payout distribution for Traditional mode
+      if (config.mode === GameMode.TRADITIONAL && config.payoutDistribution) {
+        newGame.payoutDistribution = config.payoutDistribution;
+      }
+
+      // Add custom instructions if provided
+      if (config.instructions) {
+        newGame.instructions = config.instructions;
+      }
 
       try {
         console.log('createGame: Writing to Firestore...', newGameId);
@@ -157,19 +170,35 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
     [gameId, game]
   );
 
-  // Submit a box claim (for participants)
+  // Submit a box claim (for participants) - toggles if already claimed by this user
   const submitClaim = useCallback(
     async (row: number, col: number) => {
       if (!gameId || !session || !game) return;
 
-      // Check if box is already claimed or has pending claim
-      const existingClaim = game.pendingClaims.find(
+      const square = game.grid[row]?.[col];
+      if (square?.participantId) return; // Already permanently claimed
+
+      // Check if this user already has a pending claim on this box
+      const myExistingClaim = game.pendingClaims.find(
+        (c) => c.row === row && c.col === col && c.participantId === session.id && c.status === ClaimStatus.PENDING
+      );
+
+      const docRef = doc(db, GAMES_COLLECTION, gameId);
+
+      if (myExistingClaim) {
+        // Cancel the claim (toggle off)
+        await updateDoc(docRef, {
+          pendingClaims: arrayRemove(myExistingClaim),
+          updatedAt: Date.now(),
+        });
+        return;
+      }
+
+      // Check if someone else has a pending claim
+      const otherClaim = game.pendingClaims.find(
         (c) => c.row === row && c.col === col && c.status === ClaimStatus.PENDING
       );
-      if (existingClaim) return;
-
-      const square = game.grid[row]?.[col];
-      if (square?.participantId) return;
+      if (otherClaim) return; // Someone else is claiming this box
 
       const claim: BoxClaim = {
         id: generateUUID(),
@@ -182,7 +211,6 @@ export function useFirestore(gameId: string | null, session: UserSession | null)
         createdAt: Date.now(),
       };
 
-      const docRef = doc(db, GAMES_COLLECTION, gameId);
       await updateDoc(docRef, {
         pendingClaims: arrayUnion(claim),
         updatedAt: Date.now(),
