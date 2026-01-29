@@ -272,20 +272,7 @@ export default function App() {
               <span className="text-xs text-slate-400 block uppercase font-bold">You</span>
               <span className="text-sm font-bold text-white">{session.name}</span>
             </div>
-            <button
-              onClick={handleReset}
-              className="text-slate-500 hover:text-red-400 transition-colors"
-              title="Leave Game"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-            </button>
+{/* Leave button hidden to prevent accidental session loss */}
           </div>
         </div>
       </header>
